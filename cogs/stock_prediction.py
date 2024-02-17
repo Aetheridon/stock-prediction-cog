@@ -53,16 +53,20 @@ class StockPrediction(commands.Cog):
 
     @commands.command()
     async def predict(self, ctx, *args):
-        if args:
-            ticker = args[0]
-            user_period = int(args[1])
-            await ctx.send(f"fetching data for stock {ticker} and plotting...")
-            data = self.get_data(ticker=ticker)
-            buffer = self.plot_data(data=data, ticker=ticker, period=user_period)
-            await ctx.send(file=discord.File(buffer, filename="plot.png"))
+        try:
+            if args:
+                ticker = args[0]
+                user_period = int(args[1])
+                await ctx.send(f"fetching data for stock {ticker} and plotting...")
+                data = self.get_data(ticker=ticker)
+                buffer = self.plot_data(data=data, ticker=ticker, period=user_period)
+                await ctx.send(file=discord.File(buffer, filename="plot.png"))
 
-        else:
-            await ctx.send("no arguments provided! use !predict_help for help related to the predict command...")
+            else:
+                await ctx.send("no arguments provided! use !predict_help for help related to the predict command...")
+                
+        except IndexError:
+            await ctx.send("please supply a period for prediction!")
 
     @commands.command()
     async def predict_help(self, ctx):
