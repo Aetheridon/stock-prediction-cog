@@ -74,8 +74,6 @@ class StockPrediction(commands.Cog):
 
                 await ctx.send(f"fetching data for company: `{company_name}`, ticker: `{ticker}`")
                 
-                await ctx.send(f"Debug log: {start}")
-
                 data = self.get_data(ticker=ticker, start=start)
                 buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
                 await ctx.send(file=discord.File(buffer, filename="plot.png"))
