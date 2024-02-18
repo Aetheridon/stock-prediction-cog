@@ -11,15 +11,12 @@ from prophet.plot import plot_plotly
 
 import matplotlib.pyplot as plt
 
-import pandas as pd
-
 class StockPrediction(commands.Cog):
     def __init__(self, client):
         self.client = client
-        self.START = "2015-01-01"
         self.TODAY = date.today().strftime("%Y-%m-%d")
 
-    def plot_data(self, data, ticker, period):
+    def plot_data(self, data, ticker, period, company_name):
         df_train = data.reset_index()[["Date", "Close"]]
         df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
@@ -33,7 +30,9 @@ class StockPrediction(commands.Cog):
         plt.plot(df_train["ds"], df_train["y"], label="Actual", color="blue")
         plt.plot(forecast["ds"], forecast["yhat"], label="Predicted", color="red")
         plt.fill_between(forecast["ds"], forecast["yhat_lower"], forecast["yhat_upper"], color="pink", alpha=0.5)
-        plt.title(f"{ticker} Stock Price Prediction")
+
+        plt.title(company_name)
+
         plt.xlabel("Date")
         plt.ylabel("Price")
         plt.legend()
@@ -46,31 +45,51 @@ class StockPrediction(commands.Cog):
         buffer.seek(0)
         return buffer
 
-    def get_data(self, ticker):
-        data = yf.download(ticker, self.START, self.TODAY)
+    def get_data(self, ticker, start):
+        data = yf.download(ticker, start, self.TODAY)
         data.reset_index(inplace=True)
         return data
 
     @commands.command()
     async def predict(self, ctx, *args):
-        try:
-            if args:
-                ticker = args[0]
-                user_period = int(args[1])
-                await ctx.send(f"fetching data for stock {ticker} and plotting...")
-                data = self.get_data(ticker=ticker)
-                buffer = self.plot_data(data=data, ticker=ticker, period=user_period)
-                await ctx.send(file=discord.File(buffer, filename="plot.png"))
+        if args:
 
+            ticker = args[0]
+
+            if len(args) > 1:
+                user_period = int(args[1])
             else:
-                await ctx.send("no arguments provided! use !predict_help for help related to the predict command...")
-                
-        except IndexError:
-            await ctx.send("please supply a period for prediction!")
+                user_period = 365
+            
+            if len(args) > 2:
+                start = args[2]
+            else:
+                start = "2015-1-1"
+
+                try:
+                    company_name = yf.Ticker(ticker)
+                    company_name = company_name.info["longName"]
+
+                    await ctx.send(f"fetching data for company: `{company_name}`, ticker: `{ticker}`")
+
+                    data = self.get_data(ticker=ticker, start=start)
+                    buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
+                    await ctx.send(file=discord.File(buffer, filename="plot.png"))
+
+                except KeyError:
+                    await ctx.send(f"Invalid tick {ticker}")
+                    
+        else:
+            await ctx.send("No arguments supplied! check the usage of the bot with `!predict_help`")
 
     @commands.command()
     async def predict_help(self, ctx):
-        await ctx.send("to use the prediction feature, simply type !predict followed by a stock ticker, i.e for stock information related to tesla, !predict tsla, the second argument will be periods of prediction.")
+        await ctx.send(f"""```
+{'='*5} Supported items to predict: {'='*5}
+    Stocks, Crypto, Commodities\n 
+{'='*5} Usage: {'='*5}
+    !predict [tick] [period of prediction, default: 365] [start date, default: 2015-1-1]```
+        """)
 
 async def setup(client):
     await client.add_cog(StockPrediction(client=client))
