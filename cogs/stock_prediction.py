@@ -58,27 +58,31 @@ class StockPrediction(commands.Cog):
 
             if len(args) > 1:
                 user_period = int(args[1])
+            
             else:
                 user_period = 365
             
             if len(args) > 2:
                 start = args[2]
+            
             else:
                 start = "2015-1-1"
 
-                try:
-                    company_name = yf.Ticker(ticker)
-                    company_name = company_name.info["longName"]
+            try:
+                company_name = yf.Ticker(ticker)
+                company_name = company_name.info["longName"]
 
-                    await ctx.send(f"fetching data for company: `{company_name}`, ticker: `{ticker}`")
+                await ctx.send(f"fetching data for company: `{company_name}`, ticker: `{ticker}`")
+                
+                await ctx.send(f"Debug log: {start}")
 
-                    data = self.get_data(ticker=ticker, start=start)
-                    buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
-                    await ctx.send(file=discord.File(buffer, filename="plot.png"))
+                data = self.get_data(ticker=ticker, start=start)
+                buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
+                await ctx.send(file=discord.File(buffer, filename="plot.png"))
 
-                except KeyError:
-                    await ctx.send(f"Invalid tick {ticker}")
-                    
+            except KeyError:
+                await ctx.send(f"Invalid tick {ticker}")
+
         else:
             await ctx.send("No arguments supplied! check the usage of the bot with `!predict_help`")
 
