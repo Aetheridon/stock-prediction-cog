@@ -72,14 +72,14 @@ class StockPrediction(commands.Cog):
                 company_name = yf.Ticker(ticker)
                 company_name = company_name.info["longName"]
 
-                await ctx.send(f"fetching data for company: `{company_name}`, ticker: `{ticker}`")
+                await ctx.send(f"Fetching data for company: `{company_name}`")
                 
                 data = self.get_data(ticker=ticker, start=start)
                 buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
                 await ctx.send(file=discord.File(buffer, filename="plot.png"))
 
             except KeyError:
-                await ctx.send(f"Invalid tick {ticker}")
+                await ctx.send(f"Invalid tick: {ticker}")
 
         else:
             await ctx.send("No arguments supplied! check the usage of the bot with `!predict_help`")
