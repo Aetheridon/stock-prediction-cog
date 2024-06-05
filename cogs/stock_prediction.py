@@ -85,13 +85,30 @@ class StockPrediction(commands.Cog):
             await ctx.send("No arguments supplied! check the usage of the bot with `!predict_help`")
 
     @commands.command()
-    async def predict_help(self, ctx):
-        await ctx.send(f"""```
-{'='*5} Supported items to predict: {'='*5}
-    Stocks, Crypto, Commodities\n 
-{'='*5} Usage: {'='*5}
-    !predict [tick] [period of prediction, default: 365] [start date, default: 2015-1-1]```
-        """)
+    async def help_me(self, ctx, *args):
+
+        if len(args) > 0:
+            
+            match args[0]:
+                case "bot":
+                    await ctx.send("to use the bot, simply use `!predict <ticker> <period of prediction: defaults to 365> <start date of the data: defaults to 2015-1-1>`")
+                case "ticker":
+                    await ctx.send("a stock ticker is a shorthand symbol used to identify a specific publicy traded company's stock")
+                case "crypto":
+                    await ctx.send("this cog supports prediction of crypto, however, you must use the same ticker as shown on yahoo finance's website, i.e Bitcoin is `BTC-USD`")
+                case "commodities":
+                    await ctx.send("this cog supports prediction of commodities, you must use the ticker as shown on yahoo finance, i.e Gold is GC=F (as of 05/06/2024 this seems to be bugged and the bot can no longer predict commodities, an issue on the github has been submitted and this is being investigated)")
+                case _:
+                    await ctx.send(f"no such help for category: {args[0]}")
+
+        else:
+            await ctx.send("""               
+            Heres a list of things to get help with! (use !help <option>)               
+            - bot: general bot usage
+            - ticker: tells you what a ticker is, a fundamental part of the market and using this bot
+            - crypto: how the bot supports prediction of cryptocurrencies
+            - commodities: how the bot supports prediction of commodities
+             """)
 
 async def setup(client):
     await client.add_cog(StockPrediction(client=client))
