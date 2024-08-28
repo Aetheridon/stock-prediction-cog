@@ -10,6 +10,7 @@ from prophet import Prophet
 from prophet.plot import plot_plotly
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class StockPrediction(commands.Cog):
     def __init__(self, client):
@@ -17,6 +18,15 @@ class StockPrediction(commands.Cog):
         self.TODAY = date.today().strftime("%Y-%m-%d")
 
     def plot_data(self, data, ticker, period, company_name):
+
+        highest_price = data['High'].max()
+
+        highest_price_data = data[data['High'] == highest_price]
+
+        date_of_highest_price = highest_price_data['Date'].iloc[0]
+
+        current_price = data['Close'].iloc[-1]
+
         df_train = data.reset_index()[["Date", "Close"]]
         df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
@@ -37,6 +47,41 @@ class StockPrediction(commands.Cog):
         plt.ylabel("Price")
         plt.legend()
         plt.grid(True)
+
+        #TODO: cleanup annotations in upcoming code overhaul
+
+        plt.annotate(
+            f'Highest Price: ${highest_price:,.2f}',
+            xy=(0.95, 0.99),
+            xycoords='figure fraction',
+            textcoords='figure fraction',
+            ha='right',
+            va='top', 
+            fontsize=10,
+            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
+        )
+
+        plt.annotate(
+            f'Date of Highest Price: {date_of_highest_price}',
+            xy=(0.95, 0.95),
+            xycoords='figure fraction',
+            textcoords='figure fraction',
+            ha='right',
+            va='top',
+            fontsize=10,
+            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
+        )
+
+        plt.annotate(
+            f'Current Price: ${current_price:,.2f}',
+            xy=(0.95, 0.91),
+            xycoords='figure fraction',
+            textcoords='figure fraction',
+            ha='right',
+            va='top',
+            fontsize=10,
+            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
+        )
 
         buffer = BytesIO()
         plt.savefig(buffer, format="png")
