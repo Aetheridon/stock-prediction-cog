@@ -9,7 +9,7 @@ import asyncio
 intents = discord.Intents.all()
 
 token = sys.argv[1]
-client = commands.Bot(command_prefix="!", intents=intents)
+client = commands.Bot(command_prefix="!", intents=intents, help_command = None)
 
 async def load_extensions():
     await client.load_extension("cogs.stock_prediction")

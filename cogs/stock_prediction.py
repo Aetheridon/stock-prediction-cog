@@ -1,6 +1,8 @@
 from datetime import date
 from io import BytesIO
 
+import requests
+
 import discord
 from discord.ext import commands
 
@@ -10,21 +12,21 @@ from prophet import Prophet
 from prophet.plot import plot_plotly
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
 class StockPrediction(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.TODAY = date.today().strftime("%Y-%m-%d")
 
+    def get_data(self, ticker, start):
+        data = yf.download(ticker, start, self.TODAY)
+        data.reset_index(inplace=True)
+        return data
+
     def plot_data(self, data, ticker, period, company_name):
-
         highest_price = data['High'].max()
-
         highest_price_data = data[data['High'] == highest_price]
-
         date_of_highest_price = highest_price_data['Date'].iloc[0]
-
         current_price = data['Close'].iloc[-1]
 
         df_train = data.reset_index()[["Date", "Close"]]
@@ -48,40 +50,23 @@ class StockPrediction(commands.Cog):
         plt.legend()
         plt.grid(True)
 
-        #TODO: cleanup annotations in upcoming code overhaul
+        labels = [f"Highest price: ${highest_price:,.2f}", f"Date of Highest Price: {date_of_highest_price}", f"Current Price: ${current_price:,.2f}"]
+        y = 0.99
+        y_descend = 0.04
 
-        plt.annotate(
-            f'Highest Price: ${highest_price:,.2f}',
-            xy=(0.95, 0.99),
-            xycoords='figure fraction',
-            textcoords='figure fraction',
-            ha='right',
-            va='top', 
-            fontsize=10,
-            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
-        )
+        for label in labels:
+            plt.annotate(
+                label,
+                xy=(0.95, y),
+                xycoords='figure fraction',
+                textcoords='figure fraction',
+                ha='right',
+                va='top', 
+                fontsize=10,
+                bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
+            )
 
-        plt.annotate(
-            f'Date of Highest Price: {date_of_highest_price}',
-            xy=(0.95, 0.95),
-            xycoords='figure fraction',
-            textcoords='figure fraction',
-            ha='right',
-            va='top',
-            fontsize=10,
-            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
-        )
-
-        plt.annotate(
-            f'Current Price: ${current_price:,.2f}',
-            xy=(0.95, 0.91),
-            xycoords='figure fraction',
-            textcoords='figure fraction',
-            ha='right',
-            va='top',
-            fontsize=10,
-            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
-        )
+            y -= y_descend
 
         buffer = BytesIO()
         plt.savefig(buffer, format="png")
@@ -90,53 +75,43 @@ class StockPrediction(commands.Cog):
         buffer.seek(0)
         return buffer
 
-    def get_data(self, ticker, start):
-        data = yf.download(ticker, start, self.TODAY)
-        data.reset_index(inplace=True)
-        return data
-
     @commands.command()
     async def predict(self, ctx, *args):
         if args:
-
             ticker = args[0]
-
-            if len(args) > 1:
-                user_period = int(args[1])
-            
-            else:
-                user_period = 365
-            
-            if len(args) > 2:
-                start = args[2]
-            
-            else:
-                start = "2015-1-1"
+            user_period = int(args[1]) if len(args) > 1 else 365
+            start = args[2] if len(args) > 2 else "2015-1-1"
 
             try:
-                company_name = yf.Ticker(ticker)
-                company_name = company_name.info["longName"]
-
-                await ctx.send(f"Fetching data for company: `{company_name}`")
+                company_name = yf.Ticker(ticker).info["longName"]
+                await ctx.send(f"Fetching data for `{company_name}`")
                 
                 data = self.get_data(ticker=ticker, start=start)
                 buffer = self.plot_data(data=data, ticker=ticker, period=user_period, company_name=company_name)
                 await ctx.send(file=discord.File(buffer, filename="plot.png"))
 
             except KeyError:
-                await ctx.send(f"Invalid tick: {ticker}")
+                    await ctx.send(f"Invalid tick: {ticker}")
+            except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 404:
+                        await ctx.send(f"Invalid tick: {ticker}")
+                    else:
+                        await ctx.send(f"HTTP error occured: {e}")
+            except Exception as e:
+                await ctx.send(f"Something went wrong, err: {e}")
+
 
         else:
             await ctx.send("No arguments supplied! check the usage of the bot with `!predict_help`")
 
     @commands.command()
-    async def help_me(self, ctx, *args):
+    async def help(self, ctx, *args):
 
         if len(args) > 0:
             
             match args[0]:
                 case "bot":
-                    await ctx.send("to use the bot, simply use `!predict <ticker> <period of prediction: defaults to 365> <start date of the data: defaults to 2015-1-1>`")
+                    await ctx.send("to use the bot, simply use... `!predict <ticker> <period of prediction: default: 365> <start date of the data: default: 2015-1-1>`")
                 case "ticker":
                     await ctx.send("a stock ticker is a shorthand symbol used to identify a specific publicy traded company's stock")
                 case "crypto":
