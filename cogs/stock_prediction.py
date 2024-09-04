@@ -13,6 +13,8 @@ from prophet.plot import plot_plotly
 
 import matplotlib.pyplot as plt
 
+from yahooquery import search
+
 class StockPrediction(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -129,6 +131,25 @@ class StockPrediction(commands.Cog):
             - crypto: how the bot supports prediction of cryptocurrencies
             - commodities: how the bot supports prediction of commodities
              """)
+
+    @commands.command()
+    async def search(self, ctx, *args):
+
+        if len(args) > 0:
+            results = search(args[0]).get("quotes", [])
+            tickers = []
+
+            if results:
+                for result in results:
+                    tickers.append(result["symbol"])
+
+                await ctx.send(f"tickers found: {tickers}")
+
+            else:
+                await ctx.send(f"ticker not found for: {args[0]}")
+            
+        else:
+            await ctx.send("please supply a name to search up the ticker of!")
 
 async def setup(client):
     await client.add_cog(StockPrediction(client=client))
